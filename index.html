@@ -340,6 +340,7 @@ body {
   border-right:1px solid var(--border);
   display:flex; flex-direction:column;
   position:sticky; top:0; height:100vh; overflow-y:auto;
+  justify-content:space-between;
 }
 .sb::-webkit-scrollbar { width:0; }
 
@@ -369,7 +370,7 @@ body {
 .sbi.wa:hover { background:var(--wa); color:#fff; border-color:var(--wa); }
 .rdot { position:absolute; top:3px; right:3px; width:5px; height:5px; border-radius:50%; background:var(--red); border:1.5px solid var(--white); display:none; }
 
-.sb-nav { padding:10px 10px; display:flex; flex-direction:column; }
+.sb-nav { padding:10px 10px; display:flex; flex-direction:column; overflow:hidden; }
 .sb-sec { font-size:.6rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:600; padding:8px 6px 4px; }
 .nb {
   width:100%; display:flex; align-items:center; gap:8px;
@@ -850,6 +851,53 @@ select.f-inp { cursor:pointer; }
 .nb-acc-menu{display:none;flex-direction:column;gap:1px;margin:1px 0 2px 10px;padding-left:8px;border-left:2px solid var(--border);}
 .nb-acc-menu.open{display:flex;}
 .nb-acc-menu .nb{font-size:.79rem;padding:6px 8px;}
+
+/* MOBİL HAMBURGER */
+.mob-menu-btn {
+  display:none;
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:300;
+  width:54px;height:54px;
+  border-radius:50%;
+  background:var(--blue);
+  color:#fff;
+  border:none;
+  font-size:1.3rem;
+  cursor:pointer;
+  box-shadow:0 4px 20px rgba(79,110,247,.4);
+  align-items:center;
+  justify-content:center;
+  transition:all .2s;
+}
+.mob-menu-btn:hover{background:var(--blue-d);transform:translateX(-50%) scale(1.05);}
+.sb-overlay {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  z-index:199;
+  backdrop-filter:blur(2px);
+}
+.sb-overlay.open{display:block;}
+@media(max-width:600px){
+  .mob-menu-btn{display:flex;}
+  .sb{
+    position:fixed!important;
+    left:-240px;
+    top:0;
+    height:100vh;
+    z-index:200;
+    transition:left .25s cubic-bezier(.4,0,.2,1);
+    box-shadow:none;
+  }
+  .sb.open{
+    left:0;
+    box-shadow:4px 0 24px rgba(0,0,0,.15);
+  }
+}
 </style>
 <link rel="manifest" id="pwa-manifest"><meta name="theme-color" content="#4f6ef7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="VaultTrack"><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -857,6 +905,8 @@ select.f-inp { cursor:pointer; }
 </head>
 <body>
 
+<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+<button class="mob-menu-btn" id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
 <div class="layout">
 
 <!-- ═══ SIDEBAR ═══ -->
@@ -1389,6 +1439,24 @@ function toggleCatMenu(){
   menu.classList.toggle('open',!isOpen);
   btn.classList.toggle('open',!isOpen);
 }
+
+function toggleSidebar(){
+  const sb=document.querySelector('.sb');
+  const ov=document.getElementById('sb-overlay');
+  const btn=document.getElementById('mob-menu-btn');
+  const isOpen=sb.classList.contains('open');
+  sb.classList.toggle('open',!isOpen);
+  ov.classList.toggle('open',!isOpen);
+  btn.textContent=isOpen?'☰':'✕';
+}
+function closeSidebar(){
+  const sb=document.querySelector('.sb');
+  const ov=document.getElementById('sb-overlay');
+  const btn=document.getElementById('mob-menu-btn');
+  sb.classList.remove('open');
+  ov.classList.remove('open');
+  btn.textContent='☰';
+}
 function setCountry(c){
   curCountry=c;
   document.querySelectorAll('.cbtn').forEach(b=>b.classList.remove('on'));
@@ -1397,6 +1465,7 @@ function setCountry(c){
   render();
 }
 function setNav(type,el,pid){
+  if(window.innerWidth<=600) closeSidebar();
   curNav=type;curPerson=pid||'all';
   document.querySelectorAll('.nb,.pnav-item').forEach(b=>b.classList.remove('on'));
   // Accordion: kategori seçilince menüyü aç ve toggle butonu highlight et

@@ -759,7 +759,7 @@ select.f-inp { cursor:pointer; }
   .det-grid{grid-template-columns:1fr;}
 }
 @media(max-width:600px){
-  .sb{display:none;}
+  /* .sb mobil drawer ile yönetiliyor */
   .fbar{flex-direction:column;align-items:stretch;}
   .alert-bar{left:0;}
 }
@@ -778,8 +778,38 @@ select.f-inp { cursor:pointer; }
 
 .sb-bottom .sb-sec:first-child { border-top: 1px solid var(--border-soft); padding-top:8px; margin-top:0; }
 
-@media (max-width: 600px) {
-  .sb { height:auto; min-height:unset; position:relative; }
+@media(max-width:600px){
+  /* Sidebar drawer */
+  .sb {
+    position:fixed; top:0; left:-240px; width:240px; height:100vh;
+    z-index:300; transition:left .25s ease; overflow-y:auto;
+    box-shadow:4px 0 20px rgba(0,0,0,.15);
+  }
+  .sb.mob-open { left:0; }
+
+  /* Hamburger butonu */
+  .mob-menu-btn {
+    display:flex; align-items:center; justify-content:center;
+    width:36px; height:36px; border:none; background:none;
+    font-size:1.3rem; cursor:pointer; color:var(--text);
+  }
+
+  /* Overlay */
+  .mob-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.4);
+    z-index:299;
+  }
+  .mob-overlay.open { display:block; }
+
+  /* Topbar düzenle */
+  .topbar { padding:0 10px; gap:8px; }
+  .main { width:100%; }
+  .app { flex-direction:column; }
+}
+
+@media(min-width:601px){
+  .mob-menu-btn { display:none; }
+  .mob-overlay { display:none !important; }
 }
 </style>
 <link rel="manifest" id="pwa-manifest"><meta name="theme-color" content="#4f6ef7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="VaultTrack"><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script></head>
@@ -887,6 +917,7 @@ select.f-inp { cursor:pointer; }
 <!-- ═══ MAIN ═══ -->
 <div class="main">
   <div class="topbar">
+    <button class="mob-menu-btn" onclick="toggleMobMenu()">☰</button>
     <button class="add-btn" onclick="openTypeScreen()">+ Yeni Kayıt</button>
   </div>
 
@@ -1558,6 +1589,12 @@ function backupData(){
 function restoreData(input){
   const f=input.files[0];if(!f)return;
   const rd=new FileReader();rd.onload=e=>{try{const d=JSON.parse(e.target.result);if(!confirm('Mevcut veriler silinecek, devam?'))return;if(d.recs){recs=d.recs;saveR();}if(d.persons){persons=d.persons;savePP();}if(d.ogRecs){ogRecs=d.ogRecs;saveOGR();}render();renderOG();updateNavBadges();showToast('📥 Geri yüklendi!');}catch{showToast('❌ Geçersiz dosya!');}};rd.readAsText(f);input.value='';
+}
+
+
+function toggleMobMenu(){
+  document.querySelector('.sb').classList.toggle('mob-open');
+  document.getElementById('mob-overlay').classList.toggle('open');
 }
 
 /* ═══ HIZLI EKLE ═══ */
@@ -2555,6 +2592,12 @@ function backupData(){
 function restoreData(input){
   const f=input.files[0];if(!f)return;
   const rd=new FileReader();rd.onload=e=>{try{const d=JSON.parse(e.target.result);if(!confirm('Mevcut veriler silinecek, devam?'))return;if(d.recs){recs=d.recs;saveR();}if(d.persons){persons=d.persons;savePP();}if(d.ogRecs){ogRecs=d.ogRecs;saveOGR();}render();renderOG();updateNavBadges();showToast('📥 Geri yüklendi!');}catch{showToast('❌ Geçersiz dosya!');}};rd.readAsText(f);input.value='';
+}
+
+
+function toggleMobMenu(){
+  document.querySelector('.sb').classList.toggle('mob-open');
+  document.getElementById('mob-overlay').classList.toggle('open');
 }
 
 /* ═══ HIZLI EKLE ═══ */

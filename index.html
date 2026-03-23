@@ -136,52 +136,6 @@ function checkAutoEmailReminders(){
   emailjs.send(cfg.sid,cfg.tid,{to_email:cfg.to,subject:`VaultTrack — ${soon.length} yaklaşan tarih`,message:`Yaklaşan tarihler:\n\n${lines}`}).catch(()=>{});
 }
 
-
-// ===== FIREBASE SYNC =====
-const FB_URL = "https://vaulttrack-84add-default-rtdb.europe-west1.firebasedatabase.app";
-const FB_PATH = "vaulttrack/data";
-let fbDb = null;
-let fbSyncing = false;
-
-function initFirebase() {
-  try {
-    if(firebase.apps.length) { fbDb = firebase.database(); fbSyncStart(); showToast("☁️ Firebase bağlandı"); return; }
-    firebase.initializeApp({ databaseURL: FB_URL });
-    fbDb = firebase.database();
-    fbSyncStart();
-    showToast("☁️ Firebase bağlandı");
-  } catch(e) { showToast("⚠️ Firebase bağlanamadı"); console.error(e); }
-}
-
-function fbSyncStart() {
-  if(!fbDb) return;
-  fbDb.ref(FB_PATH).on('value', snap => {
-    if(fbSyncing) return;
-    const data = snap.val();
-    if(!data) return;
-    try {
-      let changed = false;
-      if(data.updated && data.updated > (parseInt(localStorage.getItem('vtLastPush')||0))) {
-        if(data.recs) { recs = data.recs; localStorage.setItem(RK, JSON.stringify(recs)); changed = true; }
-        if(data.persons) { persons = data.persons; localStorage.setItem(PK, JSON.stringify(persons)); changed = true; }
-        if(data.ogRecs) { ogRecs = data.ogRecs; localStorage.setItem(OK, JSON.stringify(ogRecs)); changed = true; }
-        if(changed) { render(); renderOG(); updatePNav(); showToast("☁️ Senkronize edildi ✓"); }
-      }
-    } catch(e) { console.error(e); }
-  });
-}
-
-function fbPush() {
-  if(!fbDb) return;
-  const ts = Date.now();
-  fbSyncing = true;
-  localStorage.setItem('vtLastPush', String(ts));
-  fbDb.ref(FB_PATH).set({ recs, persons, ogRecs, updated: ts })
-    .then(() => { setTimeout(()=>fbSyncing=false, 2000); })
-    .catch(e => { fbSyncing=false; console.error(e); });
-}
-// ===== END FIREBASE SYNC =====
-
 // ── INIT on load ──
 window.addEventListener('load',()=>{
   setView(curView);
@@ -191,7 +145,6 @@ window.addEventListener('load',()=>{
   checkKK();
   setTimeout(checkPushReminders,4000);
   setTimeout(checkPriceChanges,5000);
-  setTimeout(initFirebase,1500);
   initPWA();
 });
 
@@ -340,7 +293,6 @@ body {
   border-right:1px solid var(--border);
   display:flex; flex-direction:column;
   position:sticky; top:0; height:100vh; overflow-y:auto;
-  justify-content:space-between;
 }
 .sb::-webkit-scrollbar { width:0; }
 
@@ -370,7 +322,7 @@ body {
 .sbi.wa:hover { background:var(--wa); color:#fff; border-color:var(--wa); }
 .rdot { position:absolute; top:3px; right:3px; width:5px; height:5px; border-radius:50%; background:var(--red); border:1.5px solid var(--white); display:none; }
 
-.sb-nav { padding:10px 10px; display:flex; flex-direction:column; overflow:hidden; }
+.sb-nav { padding:10px 10px; display:flex; flex-direction:column; }
 .sb-sec { font-size:.6rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:600; padding:8px 6px 4px; }
 .nb {
   width:100%; display:flex; align-items:center; gap:8px;
@@ -401,7 +353,7 @@ body {
 .qd-item { display:flex; align-items:center; gap:8px; padding:7px 14px; border:none; background:none; font-family:'Inter',sans-serif; font-size:.8rem; font-weight:500; color:var(--ink2); cursor:pointer; text-align:left; transition:background .12s; }
 .qd-item:hover { background:var(--blue-l); color:var(--blue); }
 
-.sb-bottom { padding:10px 12px; border-top:1px solid var(--border-soft); }
+.sb-bottom { padding:8px 12px 6px; margin-top:auto; }
 .sb-search { position:relative; margin-bottom:9px; }
 .sb-search input {
   width:100%; padding:7px 10px 7px 30px;
@@ -420,7 +372,7 @@ body {
 .p-cnt { margin-left:auto; font-size:.65rem; color:var(--muted); }
 .manage-btn { width:100%; margin-top:6px; padding:7px 10px; border-radius:8px; border:1px dashed var(--border); background:none; font-family:'Inter',sans-serif; font-size:.76rem; font-weight:500; color:var(--muted); cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
 .manage-btn:hover { border-color:var(--blue); color:var(--blue); background:var(--blue-l); }
-.sb-date { font-size:.66rem; color:var(--muted); margin-top:8px; padding:6px 2px; }
+.sb-date { font-size:.66rem; color:var(--muted); margin-top:3px; padding:2px 2px; }
 .sb-date strong { display:block; color:var(--ink2); font-size:.72rem; margin-bottom:1px; }
 
 /* KK Box */
@@ -824,89 +776,15 @@ select.f-inp { cursor:pointer; }
 .ocr-drop:hover{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
 .ocr-drop input{display:none}
 
-/* COUNTRY FILTER */
-.sb-country-sec{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;padding:8px 6px 4px;margin-top:2px;}
-.country-btns{display:flex;gap:5px;padding:0 2px 8px;}
-.cbtn{flex:1;padding:6px 4px;border-radius:8px;border:1px solid var(--border);background:var(--surface);font-family:Inter,sans-serif;font-size:.8rem;font-weight:700;color:var(--ink2);cursor:pointer;transition:all .15s;text-align:center;}
-.cbtn:hover{border-color:var(--blue);background:var(--blue-l);color:var(--blue);}
-.cbtn.on{color:#fff;border-color:transparent;}
-.cbtn.all.on{background:var(--blue);}
-.cbtn.tr.on{background:#e11d48;}
-.cbtn.ch.on{background:#dc2626;}
-/* Form country field */
-.f-country-row{display:flex;gap:10px;margin-bottom:13px;}
-.country-opt{flex:1;padding:9px 8px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);font-family:Inter,sans-serif;font-size:.82rem;font-weight:600;color:var(--ink2);cursor:pointer;text-align:center;transition:all .15s;}
-.country-opt:hover{border-color:var(--blue);background:var(--blue-l);color:var(--blue);}
-.country-opt.sel{color:#fff;border-color:transparent;}
-.country-opt.sel.tr{background:#e11d48;}
-.country-opt.sel.ch{background:#dc2626;}
-.country-opt.sel.all{background:var(--blue);}
+.sb-bottom .sb-sec:first-child { border-top: 1px solid var(--border-soft); padding-top:8px; margin-top:0; }
 
-/* ACCORDION NAV */
-.nb-acc-btn{width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;border:none;background:none;font-family:Inter,sans-serif;font-size:.82rem;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .15s;text-align:left;}
-.nb-acc-btn:hover{background:var(--surface);color:var(--ink);}
-.nb-acc-btn.open{background:var(--surface);color:var(--ink);font-weight:600;}
-.nb-acc-arrow{margin-left:auto;font-size:.65rem;color:var(--muted);transition:transform .2s;}
-.nb-acc-btn.open .nb-acc-arrow{transform:rotate(180deg);}
-.nb-acc-menu{display:none;flex-direction:column;gap:1px;margin:1px 0 2px 10px;padding-left:8px;border-left:2px solid var(--border);}
-.nb-acc-menu.open{display:flex;}
-.nb-acc-menu .nb{font-size:.79rem;padding:6px 8px;}
-
-/* MOBİL HAMBURGER */
-.mob-menu-btn {
-  display:none;
-  position:fixed;
-  bottom:20px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:300;
-  width:54px;height:54px;
-  border-radius:50%;
-  background:var(--blue);
-  color:#fff;
-  border:none;
-  font-size:1.3rem;
-  cursor:pointer;
-  box-shadow:0 4px 20px rgba(79,110,247,.4);
-  align-items:center;
-  justify-content:center;
-  transition:all .2s;
-}
-.mob-menu-btn:hover{background:var(--blue-d);transform:translateX(-50%) scale(1.05);}
-.sb-overlay {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  z-index:199;
-  backdrop-filter:blur(2px);
-}
-.sb-overlay.open{display:block;}
-@media(max-width:600px){
-  .mob-menu-btn{display:flex;}
-  .sb{
-    position:fixed!important;
-    left:-240px;
-    top:0;
-    height:100vh;
-    z-index:200;
-    transition:left .25s cubic-bezier(.4,0,.2,1);
-    box-shadow:none;
-  }
-  .sb.open{
-    left:0;
-    box-shadow:4px 0 24px rgba(0,0,0,.15);
-  }
+@media (max-width: 600px) {
+  .sb { height:auto; min-height:unset; position:relative; }
 }
 </style>
-<link rel="manifest" id="pwa-manifest"><meta name="theme-color" content="#4f6ef7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="VaultTrack"><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-</head>
+<link rel="manifest" id="pwa-manifest"><meta name="theme-color" content="#4f6ef7"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="VaultTrack"><script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script></head>
 <body>
 
-<div class="sb-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
-<button class="mob-menu-btn" id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
 <div class="layout">
 
 <!-- ═══ SIDEBAR ═══ -->
@@ -932,39 +810,33 @@ select.f-inp { cursor:pointer; }
       <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreData(this)">
 <button class="sbi" onclick="openQRModal()" title="QR Yedek">📱</button>
 <button class="sbi" onclick="openEmailSettings()" title="E-posta Ayarları">📧</button>
-<button class="sbi" onclick="fbPush();showToast('☁️ Manuel sync!')" title="Firebase Sync" style="color:#f59e0b">☁️</button>
     </div>
   </div>
 
   <!-- Nav -->
   <div class="sb-nav">
-    <div class="sb-country-sec">Ülke</div>
-<div class="country-btns">
-  <button class="cbtn all on" id="cbtn-all" onclick="setCountry('all')">🌍 Tümü</button>
-  <button class="cbtn tr" id="cbtn-tr" onclick="setCountry('tr')">🇹🇷 TR</button>
-  <button class="cbtn ch" id="cbtn-ch" onclick="setCountry('ch')">🇨🇭 CH</button>
-</div>
-<div class="sb-sec">Görünüm</div>
-    <button class="nb on" onclick="setNav('all',this)" id="nb-all-btn"><span>🏠</span> Hepsi <span class="cnt" id="nb-all">0</span></button>
-    <button class="nb-acc-btn" id="nb-cat-toggle" onclick="toggleCatMenu()">
-      <span>📂</span> Kategoriler
-      <span class="nb-cat-cnt" id="nb-cat-total" style="margin-left:4px;background:var(--surface);color:var(--muted);font-size:.6rem;font-weight:600;padding:1px 6px;border-radius:20px;border:1px solid var(--border);">0</span>
-      <span class="nb-acc-arrow">▼</span>
-    </button>
-    <div class="nb-acc-menu" id="nb-cat-menu">
-      <button class="nb" onclick="setNav('sub',this)"><span>📲</span> Abonelikler <span class="cnt" id="nb-sub">0</span></button>
-      <button class="nb" onclick="setNav('war',this)"><span>🛡️</span> Garantiler <span class="cnt" id="nb-war">0</span></button>
-      <button class="nb" onclick="setNav('ins',this)"><span>🛡️</span> Sigortalar <span class="cnt" id="nb-ins">0</span></button>
-      <button class="nb" onclick="setNav('doc',this)"><span>🪪</span> Belgeler <span class="cnt" id="nb-doc">0</span></button>
-      <button class="nb" onclick="setNav('veh',this)"><span>🚗</span> Araçlar <span class="cnt" id="nb-veh">0</span></button>
-      <button class="nb" onclick="setNav('hlth',this)"><span>💊</span> Sağlık <span class="cnt" id="nb-hlth">0</span></button>
-    </div>
-    <button class="nb pink" onclick="setNav('og',this)"><span>🎉</span> Önemli Günler <span class="cnt" id="nb-og">0</span></button>
+    <div class="sb-sec">Görünüm</div>
+    <button class="nb on" onclick="setNav('all',this)" id="nb-all-btn"><span>🏠</span> Tümü <span class="cnt" id="nb-all">0</span></button>
+    <button class="nb" onclick="setNav('sub',this)"><span>📲</span> Abonelikler <span class="cnt" id="nb-sub">0</span></button>
+    <button class="nb" onclick="setNav('war',this)"><span>🛡️</span> Garantiler <span class="cnt" id="nb-war">0</span></button>
+    <button class="nb" onclick="setNav('ins',this)"><span>🛡️</span> Sigortalar <span class="cnt" id="nb-ins">0</span></button>
+    <button class="nb" onclick="setNav('doc',this)"><span>🪪</span> Belgeler <span class="cnt" id="nb-doc">0</span></button>
     <button class="nb" onclick="setNav('cal',this)"><span>📅</span> Takvim </button>
+    <button class="nb pink" onclick="setNav('og',this)"><span>🎉</span> Önemli Günler <span class="cnt" id="nb-og">0</span></button>
     <button class="nb" onclick="setNav('arch',this)"><span>📦</span> Arşiv <span class="cnt" id="nb-arch">0</span></button>
 
+  <!-- Alt: Arama + Kişiler -->
+  
+  <!-- KK HATIRLATICI -->
+  <div class="kk-box" id="kk-box">
+    <div class="kk-title">🇨🇭 Krankenkasse Değişim Dönemi!</div>
+    <div id="kk-msg"></div>
+    <button class="kk-btn" onclick="window.open('https://www.comparis.ch/krankenkassen','_blank')">comparis.ch'de Karşılaştır →</button>
+  </div>
+  <div class="sb-bottom">
+
     <div class="sb-sec" style="margin-top:6px">Ekle</div>
-    <div style="display:flex;flex-direction:column;flex-shrink:0;margin-top:5px;">
+    <div style="display:flex;flex-direction:column;flex:1;margin-top:5px;">
     <button class="qd-btn" onclick="toggleQD()" id="qd-toggle" style="flex-shrink:0;">
       <span>⚡</span> Hızlı Ekle
       <span id="qd-arrow" style="margin-left:auto;font-size:.7rem">▼</span>
@@ -995,15 +867,6 @@ select.f-inp { cursor:pointer; }
   </div>
   </div><!-- end qd-flex -->
 
-  <!-- Alt: Arama + Kişiler -->
-  
-  <!-- KK HATIRLATICI -->
-  <div class="kk-box" id="kk-box">
-    <div class="kk-title">🇨🇭 Krankenkasse Değişim Dönemi!</div>
-    <div id="kk-msg"></div>
-    <button class="kk-btn" onclick="window.open('https://www.comparis.ch/krankenkassen','_blank')">comparis.ch'de Karşılaştır →</button>
-  </div>
-  <div class="sb-bottom">
     <button id="pwa-install-btn" onclick="pwaInstall()" style="display:none;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border-radius:8px;width:100%;background:var(--blue-l);color:var(--blue);border:1.5px solid var(--blue-m);font-size:.78rem;font-weight:600;cursor:pointer;font-family:Inter,sans-serif;margin-bottom:8px;transition:all .15s">📲 Ana Ekrana Ekle</button>
 <div class="sb-search">
       <input type="text" id="srch" placeholder="Kayıt ara..." oninput="render()">
@@ -1232,13 +1095,7 @@ select.f-inp { cursor:pointer; }
         <div class="fld f-sub f-war f-ins f-doc"><label>Hatırlatma</label>
           <select id="f-rm"><option value="30">1 ay önce</option><option value="60">2 ay önce</option><option value="90">3 ay önce</option><option value="120" selected>4 ay önce</option></select>
         </div>
-        <div class="f-country-row">
-  <button type="button" class="country-opt all sel" id="co-all" onclick="setFormCountry('all')">🌍 Genel</button>
-  <button type="button" class="country-opt tr" id="co-tr" onclick="setFormCountry('tr')">🇹🇷 Türkiye</button>
-  <button type="button" class="country-opt ch" id="co-ch" onclick="setFormCountry('ch')">🇨🇭 İsviçre</button>
-</div>
-<input type="hidden" id="f-country" value="all">
-<div class="fld full"><label>Not</label><textarea id="f-nt" placeholder="Ek bilgi..."></textarea></div>
+        <div class="fld full"><label>Not</label><textarea id="f-nt" placeholder="Ek bilgi..."></textarea></div>
       </div>
     </div>
     <div class="fs-foot">
@@ -1359,7 +1216,7 @@ let ogRecs=JSON.parse(localStorage.getItem(OK)||'[]');
 let editId=null,fType='sub',selEmoji='📲',imgData='',pdfData='',pdfFileName='';
 let ogEditId=null,ogSelEmoji='🎉';
 let waItems=[],waSelP=null;
-let curNav='all',curPerson='all',curCountry='all';
+let curNav='all',curPerson='all';
 
 const PCOLS=['#3b82f6','#8b5cf6','#22c55e','#f59e0b','#ef4444','#0ea5e9','#ec4899','#84cc16'];
 const S_EM=['📲','🎬','🎵','🎮','📺','☁️','📰','💼','🎨','📚','🌐','⚡','🔐','🛒','🎧','📡'];
@@ -1371,9 +1228,9 @@ const OG_EM=['🎉','💍','🎂','🎁','❤️','🌹','🏥','🎓','✈️',
 if(!persons.length){persons=[{id:'p1',name:'Ben',phone:''},{id:'p2',name:'Babam',phone:''},{id:'p3',name:'Annem',phone:''}];savePP();}
 if(localStorage.getItem(DK)==='1'){document.documentElement.setAttribute('data-theme','dark');document.getElementById('darkbtn').textContent='☀️';}
 
-function saveR(){localStorage.setItem(RK,JSON.stringify(recs));fbPush();}
-function savePP(){localStorage.setItem(PK,JSON.stringify(persons));fbPush();}
-function saveOGR(){localStorage.setItem(OK,JSON.stringify(ogRecs));fbPush();}
+function saveR(){localStorage.setItem(RK,JSON.stringify(recs));}
+function savePP(){localStorage.setItem(PK,JSON.stringify(persons));}
+function saveOGR(){localStorage.setItem(OK,JSON.stringify(ogRecs));}
 function today(){return new Date().toISOString().split('T')[0];}
 function dLeft(d){return Math.round((new Date(d)-new Date(today()))/86400000);}
 function toMo(p,pe){return{yearly:p/12,'2yearly':p/24,'6monthly':p/6,'3monthly':p/3}[pe]||p;}
@@ -1420,62 +1277,9 @@ function tpill(r){
 }
 
 /* ═══ NAV ═══ */
-
-function setFormCountry(c){
-  document.getElementById('f-country').value=c;
-  setFormCountryUI(c);
-}
-function setFormCountryUI(c){
-  ['all','tr','ch'].forEach(k=>{
-    const el=document.getElementById('co-'+k);
-    if(el){el.classList.toggle('sel',k===c);}
-  });
-}
-
-function toggleCatMenu(){
-  const menu=document.getElementById('nb-cat-menu');
-  const btn=document.getElementById('nb-cat-toggle');
-  const isOpen=menu.classList.contains('open');
-  menu.classList.toggle('open',!isOpen);
-  btn.classList.toggle('open',!isOpen);
-}
-
-function toggleSidebar(){
-  const sb=document.querySelector('.sb');
-  const ov=document.getElementById('sb-overlay');
-  const btn=document.getElementById('mob-menu-btn');
-  const isOpen=sb.classList.contains('open');
-  sb.classList.toggle('open',!isOpen);
-  ov.classList.toggle('open',!isOpen);
-  btn.textContent=isOpen?'☰':'✕';
-}
-function closeSidebar(){
-  const sb=document.querySelector('.sb');
-  const ov=document.getElementById('sb-overlay');
-  const btn=document.getElementById('mob-menu-btn');
-  sb.classList.remove('open');
-  ov.classList.remove('open');
-  btn.textContent='☰';
-}
-function setCountry(c){
-  curCountry=c;
-  document.querySelectorAll('.cbtn').forEach(b=>b.classList.remove('on'));
-  const el=document.getElementById('cbtn-'+c);
-  if(el)el.classList.add('on');
-  render();
-}
 function setNav(type,el,pid){
-  if(window.innerWidth<=600) closeSidebar();
   curNav=type;curPerson=pid||'all';
   document.querySelectorAll('.nb,.pnav-item').forEach(b=>b.classList.remove('on'));
-  // Accordion: kategori seçilince menüyü aç ve toggle butonu highlight et
-  const catTypes=['sub','war','ins','doc','veh','hlth'];
-  const catToggle=document.getElementById('nb-cat-toggle');
-  const catMenu=document.getElementById('nb-cat-menu');
-  if(catTypes.includes(type)){
-    if(catMenu)catMenu.classList.add('open');
-    if(catToggle)catToggle.classList.add('open');
-  }
   if(el)el.classList.add('on');
 
   const titles={all:'Tüm Kayıtlar',sub:'Abonelikler',war:'Garantiler',ins:'Sigortalar',doc:'Belgeler',arch:'📦 Arşiv',cal:'📅 Takvim'};
@@ -1607,8 +1411,6 @@ function updateNavBadges(){
   document.getElementById('nb-og').textContent=ogRecs.length;
   const nbv=document.getElementById('nb-veh');if(nbv)nbv.textContent=act.filter(r=>r.type==='veh').length;
   const nbh=document.getElementById('nb-hlth');if(nbh)nbh.textContent=act.filter(r=>r.type==='hlth').length;
-  const nbt=document.getElementById('nb-cat-total');
-  if(nbt)nbt.textContent=act.filter(r=>['sub','war','ins','doc','veh','hlth'].includes(r.type)).length;
 }
 
 function updateAlertBar(){
@@ -1777,7 +1579,7 @@ function openFormModal(type,icon,name,cat){
   document.getElementById('fs-title').textContent=TITLES[type]||'Yeni Kayıt';
   fillPS();
   // Reset fields
-  ['f-nm','f-pr','f-br','f-sr','f-nt','f-ins-company','f-ins-no','f-ins-price','f-doc-no'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});setFormCountry('all');
+  ['f-nm','f-pr','f-br','f-sr','f-nt','f-ins-company','f-ins-no','f-ins-price','f-doc-no'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   ['f-rn','f-pu','f-en','f-ins-start','f-ins-end','f-doc-start','f-doc-end'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   if(name)document.getElementById('f-nm').value=name;
   if(cat&&document.getElementById('f-ct'))document.getElementById('f-ct').value=cat;
@@ -1803,8 +1605,6 @@ function editRec(id){
   document.getElementById('f-ps').value=r.person||persons[0]?.id;
   document.getElementById('f-rm').value=r.remind||120;
   document.getElementById('f-nt').value=r.note||'';
-  {const fc=document.getElementById('f-country');if(fc)fc.value=r.country||'all';}
-  setFormCountryUI(r.country||'all');
   if(r.img){document.getElementById('img-prev-el').src=r.img;document.getElementById('img-prev-wrap').style.display='block';}
   else document.getElementById('img-prev-wrap').style.display='none';
   if(r.pdf){pdfData=r.pdf;pdfFileName=r.pdfname||'belge.pdf';_showPDFPreview(r.pdfname||'belge.pdf','Yüklü');document.getElementById('pdf-prev-wrap').style.display='block';}else{pdfData='';pdfFileName='';document.getElementById('pdf-prev-wrap').style.display='none';}
@@ -2151,7 +1951,7 @@ function saveRec(){
   if(fType==='doc'&&!document.getElementById('f-doc-end').value){showToast('⚠️ Geçerlilik sonu zorunludur!');return;}
   if(fType==='veh'&&!document.getElementById('f-plate')?.value.trim()){showToast('⚠️ Plaka zorunludur!');return;}
 
-  const base={id:editId||Date.now().toString(),type:fType,name,icon:selEmoji,person,remind:parseInt(document.getElementById('f-rm').value)||120,note:document.getElementById('f-nt').value.trim(),country:(document.getElementById('f-country')?document.getElementById('f-country').value:'all'),img:imgData,pdf:pdfData,pdfname:pdfFileName,archived:false};
+  const base={id:editId||Date.now().toString(),type:fType,name,icon:selEmoji,person,remind:parseInt(document.getElementById('f-rm').value)||120,note:document.getElementById('f-nt').value.trim(),img:imgData,pdf:pdfData,pdfname:pdfFileName,archived:false};
   let data;
   if(fType==='sub') data={...base,cat:document.getElementById('f-ct').value,price:parseFloat(document.getElementById('f-pr').value),period:document.getElementById('f-pe').value,renew:document.getElementById('f-rn').value};
   else if(fType==='war') data={...base,cat:document.getElementById('f-ct').value,brand:document.getElementById('f-br').value.trim(),serial:document.getElementById('f-sr').value.trim(),purchase:document.getElementById('f-pu').value,end:document.getElementById('f-en').value};
@@ -2415,7 +2215,7 @@ let ogRecs=JSON.parse(localStorage.getItem(OK)||'[]');
 let editId=null,fType='sub',selEmoji='📲',imgData='',pdfData='',pdfFileName='';
 let ogEditId=null,ogSelEmoji='🎉';
 let waItems=[],waSelP=null;
-let curNav='all',curPerson='all',curCountry='all';
+let curNav='all',curPerson='all';
 
 const PCOLS=['#3b82f6','#8b5cf6','#22c55e','#f59e0b','#ef4444','#0ea5e9','#ec4899','#84cc16'];
 const S_EM=['📲','🎬','🎵','🎮','📺','☁️','📰','💼','🎨','📚','🌐','⚡','🔐','🛒','🎧','📡'];
